@@ -36,10 +36,10 @@ void declaraTemp();
 %}
 
 %token TK_NUM TK_FLOAT TK_ID TK_CHAR 
-%token INT FLOAT_TYPE CHAR DOUBLE BOOL_TYPE
+%token INT FLOAT CHAR DOUBLE BOOL
 %token IF ELSE FOR WHILE RETURN
 %token EQ NE LE GE
-%token AND OR TK_BOOL
+%token AND OR TK_BOOL_T TK_BOOL_F
 %token NOT
 
 %start S
@@ -155,7 +155,7 @@ TIPO		: INT
 			{
 				$$.tipo = "int";
 			}
-			| FLOAT_TYPE
+			| FLOAT
 			{
 				$$.tipo = "float";
 			}
@@ -163,7 +163,7 @@ TIPO		: INT
 			{
 				$$.tipo = "char";
 			}
-			| BOOL_TYPE
+			| BOOL
 			{
 				$$.tipo = "int";
 			}
@@ -278,7 +278,13 @@ E 			: E '+' E
 				$$.label = $1.label;
 				$$.traducao = "";
 			}
-			| TK_BOOL
+			| TK_BOOL_T
+			{
+				$$.tipo = "int";
+				$$.label = $1.label;
+				$$.traducao = "";
+			}
+			| TK_BOOL_F
 			{
 				$$.tipo = "int";
 				$$.label = $1.label;
