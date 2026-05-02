@@ -20,6 +20,12 @@ struct atributos
 	string tipo;
 };
 
+struct Simbolo {
+    string tipo;
+    string temp;
+};
+
+map<string,Simbolo> tabela_simbolos;
 
 int yylex(void);
 
@@ -52,36 +58,97 @@ S 			: E
 				declaraTemp();
 
 				codigo_gerado += "\n";
-
 				codigo_gerado += $1.traducao;
-
-				codigo_gerado += "\treturn 0;"
-							"\n}\n";
+				codigo_gerado += "\treturn 0;\n}\n";
 			}
-			;
-
-BLOCO		: '{' COMANDOS '}'
+			| COMANDOS
 			{
-				$$.traducao = $2.traducao;
+				codigo_gerado = "/*Compilador FOCA*/\n"
+								"#include <stdio.h>\n"
+								"int main(void) {\n";
+
+				declaraTemp();
+
+				codigo_gerado += "\n";
+				codigo_gerado += $1.traducao;
+				codigo_gerado += "\treturn 0;\n}\n";
 			}
 			;
-
-COMANDOS		: COMANDO COMANDOS
+COMANDOS 	: COMANDO COMANDOS
 			{
 				$$.traducao = $1.traducao + $2.traducao;
 			}
-			|
-			{
-				$$.traducao = "";
-			}
-			;
-
-COMANDO		: E ';'
+			| COMANDO
 			{
 				$$.traducao = $1.traducao;
 			}
 			;
 
+COMANDO 	: DECL ';'
+			{
+				$$.traducao = $1.traducao;
+			}
+			| TK_ID '=' E ';'
+			{
+				if(!tabela_simbolos.count($1.label))
+				{
+					tabela_simbolos[$1.label].tipo = $3.tipo;
+					tabela_simbolos[$1.label].temp = gentempcode($3.tipo);
+				}
+				else if(tabela_simbolos[$1.label].tipo != $3.tipo)
+				{
+					yyerror("Tipos incompativeis na atribuicao");
+				}
+
+				$$.traducao =
+					$3.traducao +
+					"\t" + tabela_simbolos[$1.label].temp +
+					" = " + $3.label + ";\n";
+			}
+			| TK_ID '=' E
+			{
+				if(!tabela_simbolos.count($1.label))
+				{
+					tabela_simbolos[$1.label].tipo = $3.tipo;
+					tabela_simbolos[$1.label].temp = gentempcode($3.tipo);
+				}
+				else if(tabela_simbolos[$1.label].tipo != $3.tipo)
+				{
+					yyerror("Tipos incompativeis na atribuicao");
+				}
+
+				$$.traducao =
+					$3.traducao +
+					"\t" + tabela_simbolos[$1.label].temp +
+					" = " + $3.label + ";\n";
+			}
+			;
+DECL		: TIPO TK_ID
+			{
+			if(tabela_simbolos.count($2.label))
+				yyerror("Variavel ja declarada");
+
+			string temp = gentempcode($1.tipo);
+
+			tabela_simbolos[$2.label].tipo = $1.tipo;
+			tabela_simbolos[$2.label].temp = temp;
+
+			$$.traducao = "";
+			}
+			;
+TIPO		: INT
+			{
+				$$.tipo = "int";
+			}
+			| FLOAT_TYPE
+			{
+				$$.tipo = "float";
+			}
+			| CHAR
+			{
+				$$.tipo = "char";
+			}
+			;
 E 			: E '+' E
 			{
 				$$.tipo = $1.tipo;
@@ -135,12 +202,6 @@ E 			: E '+' E
 				$$.label = gentempcode($$.tipo);
 				$$.traducao = "\t" + $$.label + " = " + $1.label + ";\n";
 			}
-			| TK_ID '=' E
-			{
-				$$.tipo = $3.tipo;
-				$$.label = $1.label;
-				$$.traducao = $1.traducao + $3.traducao + "\t" + $1.label + " = " + $3.label + ";\n";
-			}
 			| TK_NUM
 			{	
 				$$.tipo = "int";
@@ -149,9 +210,15 @@ E 			: E '+' E
 			}
 			| TK_ID
 			{
-				$$.tipo = "int";
-				$$.label = gentempcode($$.tipo);
-				$$.traducao = "\t" + $$.label + " = " + $1.label + ";\n";
+				if(!tabela_simbolos.count($1.label))
+				{
+					tabela_simbolos[$1.label].tipo = "int";
+					tabela_simbolos[$1.label].temp = gentempcode("int");
+				}
+
+				$$.tipo = tabela_simbolos[$1.label].tipo;
+				$$.label = tabela_simbolos[$1.label].temp;
+				$$.traducao = "";
 			}
 			;
 
