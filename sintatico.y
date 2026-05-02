@@ -40,11 +40,19 @@ void declaraTemp();
 %token IF ELSE FOR WHILE RETURN
 %token EQ NE LE GE
 %token AND OR TK_BOOL
+%token NOT
 
 %start S
 
+%left OR
+%left AND
+%left EQ NE
+%left '<' '>' LE GE
 %left '+' '-'
 %left '*' '/'
+%right NOT
+
+
 
 %%
 
@@ -74,6 +82,7 @@ S 			: E
 				codigo_gerado += "\treturn 0;\n}\n";
 			}
 			;
+
 COMANDOS 	: COMANDO COMANDOS
 			{
 				$$.traducao = $1.traducao + $2.traducao;
@@ -93,12 +102,15 @@ COMANDO 	: DECL ';'
 				if(!tabela_simbolos.count($1.label))
 				{
 					tabela_simbolos[$1.label].tipo = $3.tipo;
-					tabela_simbolos[$1.label].temp = gentempcode($3.tipo);
+					tabela_simbolos[$1.label].temp = "";
 				}
 				else if(tabela_simbolos[$1.label].tipo != $3.tipo)
 				{
 					yyerror("Tipos incompativeis na atribuicao");
 				}
+
+				if(tabela_simbolos[$1.label].temp == "")
+					tabela_simbolos[$1.label].temp = gentempcode(tabela_simbolos[$1.label].tipo);
 
 				$$.traducao =
 					$3.traducao +
@@ -110,12 +122,15 @@ COMANDO 	: DECL ';'
 				if(!tabela_simbolos.count($1.label))
 				{
 					tabela_simbolos[$1.label].tipo = $3.tipo;
-					tabela_simbolos[$1.label].temp = gentempcode($3.tipo);
+					tabela_simbolos[$1.label].temp = "";
 				}
 				else if(tabela_simbolos[$1.label].tipo != $3.tipo)
 				{
 					yyerror("Tipos incompativeis na atribuicao");
 				}
+
+				if(tabela_simbolos[$1.label].temp == "")
+					tabela_simbolos[$1.label].temp = gentempcode(tabela_simbolos[$1.label].tipo);
 
 				$$.traducao =
 					$3.traducao +
@@ -123,19 +138,19 @@ COMANDO 	: DECL ';'
 					" = " + $3.label + ";\n";
 			}
 			;
+
 DECL		: TIPO TK_ID
 			{
-			if(tabela_simbolos.count($2.label))
-				yyerror("Variavel ja declarada");
+				if(tabela_simbolos.count($2.label))
+					yyerror("Variavel ja declarada");
 
-			string temp = gentempcode($1.tipo);
+				tabela_simbolos[$2.label].tipo = $1.tipo;
+				tabela_simbolos[$2.label].temp = ""; // temp alocado só na atribuição
 
-			tabela_simbolos[$2.label].tipo = $1.tipo;
-			tabela_simbolos[$2.label].temp = temp;
-
-			$$.traducao = "";
+				$$.traducao = "";
 			}
 			;
+
 TIPO		: INT
 			{
 				$$.tipo = "int";
@@ -153,6 +168,7 @@ TIPO		: INT
 				$$.tipo = "int";
 			}
 			;
+
 E 			: E '+' E
 			{
 				$$.tipo = $1.tipo;
@@ -160,7 +176,6 @@ E 			: E '+' E
 				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
 					" = " + $1.label + " + " + $3.label + ";\n";
 			}
-			
 			| E '-' E
 			{
 				$$.tipo = $1.tipo;
@@ -181,6 +196,69 @@ E 			: E '+' E
 				$$.label = gentempcode($1.tipo);
 				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
 					" = " + $1.label + " / " + $3.label + ";\n";
+			}
+			| E '<' E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " < " + $3.label + ";\n";
+			}
+			| E '>' E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " > " + $3.label + ";\n";
+			}
+			| E LE E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " <= " + $3.label + ";\n";
+			}
+			| E GE E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " >= " + $3.label + ";\n";
+			}
+			| E EQ E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " == " + $3.label + ";\n";
+			}
+			| E NE E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " != " + $3.label + ";\n";
+			}
+			| E AND E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " && " + $3.label + ";\n";
+			}
+			| E OR E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
+					" = " + $1.label + " || " + $3.label + ";\n";
+			}
+			| NOT E
+			{
+				$$.tipo = "int";
+				$$.label = gentempcode("int");
+				$$.traducao = $2.traducao + "\t" + $$.label +
+					" = !" + $2.label + ";\n";
 			}
 			| '(' E ')'
 			{
@@ -217,8 +295,11 @@ E 			: E '+' E
 				if(!tabela_simbolos.count($1.label))
 				{
 					tabela_simbolos[$1.label].tipo = "int";
-					tabela_simbolos[$1.label].temp = gentempcode("int");
+					tabela_simbolos[$1.label].temp = "";
 				}
+
+				if(tabela_simbolos[$1.label].temp == "")
+					tabela_simbolos[$1.label].temp = gentempcode(tabela_simbolos[$1.label].tipo);
 
 				$$.tipo = tabela_simbolos[$1.label].tipo;
 				$$.label = tabela_simbolos[$1.label].temp;
@@ -234,14 +315,14 @@ int yyparse();
 
 void declaraTemp(){
 	for (auto &t : temporarios) {
-    codigo_gerado += "\t" + t.second + " " + t.first + ";\n";
+		codigo_gerado += "\t" + t.second + " " + t.first + ";\n";
 	}
 }
 
 string gentempcode(string tipo)
 {
 	var_temp_qnt++;
-	string nome =  "t" + to_string(var_temp_qnt);
+	string nome = "t" + to_string(var_temp_qnt);
 	temporarios.push_back({nome, tipo});
 	return nome;
 }
