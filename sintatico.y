@@ -35,8 +35,8 @@ void declaraTemp();
 
 %}
 
-%token TK_NUM TK_FLOAT TK_ID TK_CHAR
-%token INT FLOAT_TYPE CHAR DOUBLE
+%token TK_NUM TK_FLOAT TK_ID TK_CHAR 
+%token INT FLOAT_TYPE CHAR DOUBLE BOOL_TYPE
 %token IF ELSE FOR WHILE RETURN
 %token EQ NE LE GE
 %token AND OR TK_BOOL
@@ -148,6 +148,10 @@ TIPO		: INT
 			{
 				$$.tipo = "char";
 			}
+			| BOOL_TYPE
+			{
+				$$.tipo = "int";
+			}
 			;
 E 			: E '+' E
 			{
@@ -193,14 +197,14 @@ E 			: E '+' E
 			| TK_CHAR
 			{
 				$$.tipo = "char";
-				$$.label = gentempcode($$.tipo);
-				$$.traducao = "\t" + $$.label + " = " + $1.label + ";\n";
+				$$.label = $1.label;
+				$$.traducao = "";
 			}
 			| TK_BOOL
 			{
-				$$.tipo = "bool";
-				$$.label = gentempcode($$.tipo);
-				$$.traducao = "\t" + $$.label + " = " + $1.label + ";\n";
+				$$.tipo = "int";
+				$$.label = $1.label;
+				$$.traducao = "";
 			}
 			| TK_NUM
 			{	

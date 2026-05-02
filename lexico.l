@@ -27,13 +27,9 @@ FLOAT      {DIGITO}+\.{DIGITO}*([eE][+-]?{DIGITO}+)?
 "float"     { return FLOAT_TYPE; }
 "char"      { return CHAR; }
 "double"    { return DOUBLE; }
-
-"if"        { return IF; }
-"else"      { return ELSE; }
-"for"       { return FOR; }
-"while"     { return WHILE; }
-"return"    { return RETURN; }
-
+"bool"   return BOOL_TYPE;
+"true"   { yylval.label = "1"; return TK_BOOL; }
+"false"  { yylval.label = "0"; return TK_BOOL; }
 
 "=="        { return EQ; }
 "!="        { return NE; }
@@ -67,8 +63,6 @@ FLOAT      {DIGITO}+\.{DIGITO}*([eE][+-]?{DIGITO}+)?
 {NUM}       { yylval.label = yytext; return TK_NUM; }
 \'({LETRA}|{NUM})\' { yylval.label = yytext; return TK_CHAR; }
 
-"true"  { yylval.label = yytext; return TK_BOOL; }
-"false" { yylval.label = yytext; return TK_BOOL; }
 
 {ID}        { yylval.label = yytext; return TK_ID; }
 
