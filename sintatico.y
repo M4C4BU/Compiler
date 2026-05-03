@@ -33,13 +33,26 @@ void yyerror(string);
 string gentempcode(string tipo);
 void declaraTemp();
 
+string maior_tipo(string t1, string t2) {
+    if (t1 == "float" || t2 == "float") return "float";
+    if (t1 == "int"   || t2 == "int")   return "int";
+    return "char";
+}
+
+string converter(string origem, string destino, string label, string &traducao) {
+    if (origem == destino) return label;
+    string temp = gentempcode(destino);
+    traducao += "\t" + temp + " = (" + destino + ") " + label + ";\n";
+    return temp;
+}
+
 %}
 
 %token TK_NUM TK_FLOAT TK_ID TK_CHAR 
-%token INT FLOAT CHAR DOUBLE BOOL
+%token INT FLOAT_TYPE CHAR DOUBLE BOOL_TYPE
 %token IF ELSE FOR WHILE RETURN
 %token EQ NE LE GE
-%token AND OR TK_BOOL_T TK_BOOL_F
+%token AND OR TK_BOOL
 %token NOT
 
 %start S
@@ -51,8 +64,6 @@ void declaraTemp();
 %left '+' '-'
 %left '*' '/'
 %right NOT
-
-
 
 %%
 
@@ -145,7 +156,7 @@ DECL		: TIPO TK_ID
 					yyerror("Variavel ja declarada");
 
 				tabela_simbolos[$2.label].tipo = $1.tipo;
-				tabela_simbolos[$2.label].temp = ""; // temp alocado só na atribuição
+				tabela_simbolos[$2.label].temp = "";
 
 				$$.traducao = "";
 			}
@@ -155,7 +166,7 @@ TIPO		: INT
 			{
 				$$.tipo = "int";
 			}
-			| FLOAT
+			| FLOAT_TYPE
 			{
 				$$.tipo = "float";
 			}
@@ -163,7 +174,7 @@ TIPO		: INT
 			{
 				$$.tipo = "char";
 			}
-			| BOOL
+			| BOOL_TYPE
 			{
 				$$.tipo = "int";
 			}
@@ -171,31 +182,47 @@ TIPO		: INT
 
 E 			: E '+' E
 			{
-				$$.tipo = $1.tipo;
-				$$.label = gentempcode($1.tipo);
-				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
-					" = " + $1.label + " + " + $3.label + ";\n";
+				string t = maior_tipo($1.tipo, $3.tipo);
+				string trad1 = $1.traducao, trad2 = $3.traducao;
+				string l1 = converter($1.tipo, t, $1.label, trad1);
+				string l2 = converter($3.tipo, t, $3.label, trad2);
+				$$.tipo = t;
+				$$.label = gentempcode(t);
+				$$.traducao = trad1 + trad2 +
+					"\t" + $$.label + " = " + l1 + " + " + l2 + ";\n";
 			}
 			| E '-' E
 			{
-				$$.tipo = $1.tipo;
-				$$.label = gentempcode($1.tipo);
-				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
-					" = " + $1.label + " - " + $3.label + ";\n";
+				string t = maior_tipo($1.tipo, $3.tipo);
+				string trad1 = $1.traducao, trad2 = $3.traducao;
+				string l1 = converter($1.tipo, t, $1.label, trad1);
+				string l2 = converter($3.tipo, t, $3.label, trad2);
+				$$.tipo = t;
+				$$.label = gentempcode(t);
+				$$.traducao = trad1 + trad2 +
+					"\t" + $$.label + " = " + l1 + " - " + l2 + ";\n";
 			}
 			| E '*' E
 			{
-				$$.tipo = $1.tipo;
-				$$.label = gentempcode($1.tipo);
-				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
-					" = " + $1.label + " * " + $3.label + ";\n";
+				string t = maior_tipo($1.tipo, $3.tipo);
+				string trad1 = $1.traducao, trad2 = $3.traducao;
+				string l1 = converter($1.tipo, t, $1.label, trad1);
+				string l2 = converter($3.tipo, t, $3.label, trad2);
+				$$.tipo = t;
+				$$.label = gentempcode(t);
+				$$.traducao = trad1 + trad2 +
+					"\t" + $$.label + " = " + l1 + " * " + l2 + ";\n";
 			}
 			| E '/' E
 			{
-				$$.tipo = $1.tipo;
-				$$.label = gentempcode($1.tipo);
-				$$.traducao = $1.traducao + $3.traducao + "\t" + $$.label +
-					" = " + $1.label + " / " + $3.label + ";\n";
+				string t = maior_tipo($1.tipo, $3.tipo);
+				string trad1 = $1.traducao, trad2 = $3.traducao;
+				string l1 = converter($1.tipo, t, $1.label, trad1);
+				string l2 = converter($3.tipo, t, $3.label, trad2);
+				$$.tipo = t;
+				$$.label = gentempcode(t);
+				$$.traducao = trad1 + trad2 +
+					"\t" + $$.label + " = " + l1 + " / " + l2 + ";\n";
 			}
 			| E '<' E
 			{
@@ -260,6 +287,16 @@ E 			: E '+' E
 				$$.traducao = $2.traducao + "\t" + $$.label +
 					" = !" + $2.label + ";\n";
 			}
+			| '(' TIPO ')' E
+			{
+				string temp_copia = gentempcode($4.tipo);
+				string temp_cast  = gentempcode($2.tipo);
+				$$.tipo  = $2.tipo;
+				$$.label = temp_cast;
+				$$.traducao = $4.traducao +
+					"\t" + temp_copia + " = " + $4.label + ";\n" +
+					"\t" + temp_cast  + " = (" + $2.tipo + ") " + temp_copia + ";\n";
+			}
 			| '(' E ')'
 			{
 				$$.label = $2.label;
@@ -278,13 +315,7 @@ E 			: E '+' E
 				$$.label = $1.label;
 				$$.traducao = "";
 			}
-			| TK_BOOL_T
-			{
-				$$.tipo = "int";
-				$$.label = $1.label;
-				$$.traducao = "";
-			}
-			| TK_BOOL_F
+			| TK_BOOL
 			{
 				$$.tipo = "int";
 				$$.label = $1.label;
