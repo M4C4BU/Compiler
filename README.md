@@ -24,7 +24,7 @@ Este repositório contém um compilador desenvolvido para a disciplina de Compil
   O exemplo não contém declaração de variável.
   
   #### Erros: 06
-  O exemplo expressão sem ponto e vírgula.
+  O exemplo contém expressão sem ponto e vírgula.
 
   #### Erros: 07
   O resultado difere apenas pela ordem dos fatores, o que não altera o valor devido à comutatividade da multiplicação.
