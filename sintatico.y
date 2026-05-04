@@ -128,26 +128,6 @@ COMANDO 	: DECL ';'
 					"\t" + tabela_simbolos[$1.label].temp +
 					" = " + $3.label + ";\n";
 			}
-			| TK_ID '=' E
-			{
-				if(!tabela_simbolos.count($1.label))
-				{
-					tabela_simbolos[$1.label].tipo = $3.tipo;
-					tabela_simbolos[$1.label].temp = "";
-				}
-				else if(tabela_simbolos[$1.label].tipo != $3.tipo)
-				{
-					yyerror("Tipos incompativeis na atribuicao");
-				}
-
-				if(tabela_simbolos[$1.label].temp == "")
-					tabela_simbolos[$1.label].temp = gentempcode(tabela_simbolos[$1.label].tipo);
-
-				$$.traducao =
-					$3.traducao +
-					"\t" + tabela_simbolos[$1.label].temp +
-					" = " + $3.label + ";\n";
-			}
 			;
 
 DECL		: TIPO TK_ID
